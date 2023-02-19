@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	chat "github.com/ngynkvn/chatbox/internal/chat"
+	chat "github.com/cyberselkie/chatbox/internal/chat"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/wish"
@@ -17,7 +17,7 @@ import (
 )
 
 const host = "0.0.0.0"
-const port = 2222
+const port = 666
 
 type subscribeFn func(string) chan string
 
@@ -34,7 +34,6 @@ func ChatSession(chat *chat.ChatRoom) wish.Middleware {
 		}
 	}
 }
-
 func main() {
 	ctx, cancel, chatRoom := chat.StartChatRoom()
 	defer cancel()
@@ -81,7 +80,7 @@ func teaHandler(chatRoom *chat.ChatRoom) bm.Handler {
 		}
 		recv := chatRoom.Subscribe(username)
 		m := chat.NewClient(username, pty, chatRoom.Inbox, recv)
-		return m, []tea.ProgramOption{tea.WithAltScreen()}
+		return m, []tea.ProgramOption{tea.WithAltScreen(), tea.WithMouseCellMotion()}
 	}
 	return handler
 }

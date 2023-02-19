@@ -16,18 +16,19 @@ import (
 func NewClient(username string, pty ssh.Pty, send chan<- string, recv chan Msg) Client {
 	ti := textinput.New()
 	ti.Focus()
-	ti.CharLimit = 128
 	ti.Prompt = username + ": "
 	ti.PromptStyle = ti.PromptStyle.Foreground(randomColor())
-	ti.Width = 80
-	ti.TextStyle = ti.TextStyle.Foreground(randomColor())
+
 	return Client{
-		width:    pty.Window.Width,
-		height:   pty.Window.Height,
-		username: username,
-		input:    ti,
-		recv:     recv,
-		send:     send,
+		input:       ti,
+		messages:    []string{},
+		senderStyle: lipgloss.NewStyle().Foreground(randomColor()),
+		err:         nil,
+		width:       pty.Window.Width,
+		height:      pty.Window.Height,
+		username:    username,
+		recv:        recv,
+		send:        send,
 	}
 }
 
@@ -40,7 +41,7 @@ func (chatRoom *ChatRoom) withLock(tag string, f func()) {
 }
 
 func (chatRoom *ChatRoom) Subscribe(username string) chan Msg {
-	ch := make(chan Msg, 1024)
+	ch := make(chan Msg)
 	go chatRoom.withLock("SUBSCRIBE", func() {
 		v, ok := chatRoom.users[username]
 		log.Printf("[🔔 %s] %t %v", username, ok, v)
@@ -74,6 +75,7 @@ func (chatRoom *ChatRoom) Unsubscribe(username string) {
 }
 func (chatRoom *ChatRoom) history() string {
 	return strings.Join(chatRoom.lines, "\n")
+
 }
 
 func (chatRoom *ChatRoom) Blast(m Msg) {
@@ -101,15 +103,35 @@ func logTime(tag string, f func()) {
 
 func StartChatRoom() (context.Context, context.CancelFunc, *ChatRoom) {
 	chatRoom := ChatRoom{
-		lines: []string{"Welcome!"},
+		lines: []string{},
 		users: make(map[string]chan<- Msg),
-		Inbox: make(chan string, 1024),
+		Inbox: make(chan string),
 	}
 	// Entry point for new messages from subscriptions.
 	go func() {
 		for msg := range chatRoom.Inbox {
 			logTime("SendAll", func() {
 				log.Printf("RECV: %s, %d chars long", msg, len(msg))
+				msg = ColorText(msg, "/", "/")
+				//adding pseudo markdown
+				//italics
+				msg = TextStyles(msg, "*", "*", "italics")
+				//bold
+				msg = TextStyles(msg, "+", "+", "bold")
+				//whisper
+				msg = TextStyles(msg, "{", "}", "whisper")
+				//underline
+				msg = TextStyles(msg, "_", "_", "underline")
+
+				//shadowrun dice command
+				if strings.Contains(msg, "sr[") {
+					msg = shadowroll(msg)
+				}
+
+				//standard dice command
+				if strings.Contains(msg, "roll[") {
+					msg = standardroll(msg)
+				}
 				chatRoom.lines = append(chatRoom.lines, msg)
 				chat := MsgChat{chat: strings.Join(chatRoom.lines, "\n")}
 				chatRoom.SendAll(chat)
