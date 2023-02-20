@@ -18,7 +18,8 @@ func CommandsOutput(msg string) string {
 	return msg
 }
 
-func TextCommands(msg string) string {
+// Need to remove this now that it renders in markdown but I'm sentimental
+/*func TextCommands(msg string) string {
 	// change color of inline text
 	msg = ColorText(msg, "/", "/")
 	//adding pseudo markdown
@@ -32,7 +33,7 @@ func TextCommands(msg string) string {
 	msg = TextStyles(msg, "_", "_", "underline")
 
 	return msg
-}
+}*/
 
 func DiceCommands(msg string) string {
 	//shadowrun dice command
@@ -53,11 +54,11 @@ func standardroll(ro string) string {
 	name := strings.TrimRight(ro, ":")
 	var me string
 	if roll == "" {
-		me = "ERROR: No roll!"
+		me = "ERROR: No roll! \n"
 	} else {
 		result, _, err := dice.Roll(roll)
 		if err != nil {
-			return "ERROR: Incorrect roll!"
+			return "ERROR: Incorrect roll! \n"
 		}
 		r := result.(dice.StdResult)
 		sort.Ints(r.Rolls)
@@ -66,8 +67,8 @@ func standardroll(ro string) string {
 			sNums[i] = strconv.Itoa(x)
 		}
 		list := strings.Join(sNums, ", ")
-		total := strconv.Itoa(r.Total)
-		me = name + "\n total = " + total + "\n dice_rolled = " + list
+		total := "`" + strconv.Itoa(r.Total) + "`"
+		me = name + "\n total = " + total + "\n dice_rolled = " + list + "\n"
 		if r.Dropped != nil {
 			sort.Ints(r.Dropped)
 			sNums = make([]string, len(r.Dropped))
@@ -75,7 +76,7 @@ func standardroll(ro string) string {
 				sNums[i] = strconv.Itoa(x)
 			}
 			list = strings.Join(sNums, ", ")
-			me += "\n dice_dropped = " + list
+			me += "\n dice_dropped = " + list + "\n"
 		}
 	}
 	return me
@@ -86,12 +87,12 @@ func shadowroll(ro string) string {
 	name := strings.TrimRight(ro, ":")
 	var me string
 	if roll == "" {
-		me = "ERROR: No roll!"
+		me = "ERROR: No roll! \n"
 	} else {
 		res := roll + "d6rv5"
 		result, _, err := dice.Roll(res)
 		if err != nil {
-			return "ERROR: Incorrect roll!"
+			return "ERROR: Incorrect roll! \n"
 		}
 		r := result.(dice.VsResult)
 		sort.Ints(r.Rolls)
@@ -99,12 +100,12 @@ func shadowroll(ro string) string {
 		for i, x := range r.Rolls {
 			sNums[i] = strconv.Itoa(x)
 		}
-		hits := strconv.Itoa(r.Successes)
+		hits := "`" + strconv.Itoa(r.Successes) + "`"
 		list := strings.Join(sNums, ", ")
-		me = name + " \n total_hits = " + hits + "\n total_results = " + list
+		me = name + " \n total_hits = " + hits + "\n total_results = " + list + "\n"
 		count := strings.Count(list, "1")
 		if count >= len(r.Rolls)/2 {
-			me = me + " **GLITCH** \n "
+			me = me + "\n `**GLITCH**` \n "
 		}
 	}
 	return me
