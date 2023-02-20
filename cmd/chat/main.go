@@ -79,7 +79,8 @@ func teaHandler(chatRoom *chat.ChatRoom) bm.Handler {
 			return nil, nil
 		}
 		recv := chatRoom.Subscribe(username)
-		m := chat.NewClient(username, pty, chatRoom.Inbox, recv)
+		theme := "dracula"
+		m := chat.NewClient(username, pty, chatRoom.Inbox, recv, theme)
 		return m, []tea.ProgramOption{tea.WithAltScreen(), tea.WithMouseCellMotion()}
 	}
 	return handler

@@ -3,32 +3,40 @@ package chat
 import (
 	"context"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gerow/go-color"
 	"github.com/gliderlabs/ssh"
 )
 
-func NewClient(username string, pty ssh.Pty, send chan<- string, recv chan Msg) Client {
-	ti := textinput.New()
+func NewClient(username string, pty ssh.Pty, send chan<- string, recv chan Msg, theme string) Client {
+	ti := textarea.New()
 	ti.Focus()
-	ti.Prompt = username + ": "
-	ti.PromptStyle = ti.PromptStyle.Foreground(randomColor())
+	ti.Prompt = "// "
+
+	ti.SetHeight(3)
+	ti.SetWidth(pty.Window.Width)
+
+	ti.KeyMap.InsertNewline.SetEnabled(true)
+	ti.KeyMap.InsertNewline.Unbind()
+	ti.KeyMap.InsertNewline.SetKeys("ctrl+r")
+
+	ti.FocusedStyle.CursorLine = lipgloss.NewStyle().Background(subtle)
+
+	ti.ShowLineNumbers = false
 
 	return Client{
-		input:       ti,
-		messages:    []string{},
-		senderStyle: lipgloss.NewStyle().Foreground(randomColor()),
-		err:         nil,
-		width:       pty.Window.Width,
-		height:      pty.Window.Height,
-		username:    username,
-		recv:        recv,
-		send:        send,
+		input:    ti,
+		err:      nil,
+		width:    pty.Window.Width,
+		height:   pty.Window.Height,
+		username: username,
+		send:     send,
+		recv:     recv,
+		theme:    theme,
+		Choice:   0,
 	}
 }
 
@@ -51,7 +59,7 @@ func (chatRoom *ChatRoom) Subscribe(username string) chan Msg {
 		} else {
 			chatRoom.users[username] = ch
 		}
-		chatRoom.Inbox <- username + " has joined"
+		chatRoom.Inbox <- username + " has joined\n"
 		ch <- MsgChat{chatRoom.history()}
 		chatRoom.Blast(MsgUserList{chatRoom.GetUsers()})
 	})
@@ -69,7 +77,7 @@ func (chatRoom *ChatRoom) GetUsers() []string {
 func (chatRoom *ChatRoom) Unsubscribe(username string) {
 	chatRoom.withLock("UNSUBSCRIBE", func() {
 		delete(chatRoom.users, username)
-		chatRoom.Inbox <- username + " has left"
+		chatRoom.Inbox <- username + " has left\n"
 		chatRoom.Blast(MsgUserList{chatRoom.GetUsers()})
 	})
 }
@@ -111,29 +119,10 @@ func StartChatRoom() (context.Context, context.CancelFunc, *ChatRoom) {
 	go func() {
 		for msg := range chatRoom.Inbox {
 			logTime("SendAll", func() {
+				msg = CommandsOutput(msg)
 				log.Printf("RECV: %s, %d chars long", msg, len(msg))
-				msg = ColorText(msg, "/", "/")
-				//adding pseudo markdown
-				//italics
-				msg = TextStyles(msg, "*", "*", "italics")
-				//bold
-				msg = TextStyles(msg, "+", "+", "bold")
-				//whisper
-				msg = TextStyles(msg, "{", "}", "whisper")
-				//underline
-				msg = TextStyles(msg, "_", "_", "underline")
-
-				//shadowrun dice command
-				if strings.Contains(msg, "sr[") {
-					msg = shadowroll(msg)
-				}
-
-				//standard dice command
-				if strings.Contains(msg, "roll[") {
-					msg = standardroll(msg)
-				}
 				chatRoom.lines = append(chatRoom.lines, msg)
-				chat := MsgChat{chat: strings.Join(chatRoom.lines, "\n")}
+				chat := MsgChat{chat: (strings.Join(chatRoom.lines, "\n"))}
 				chatRoom.SendAll(chat)
 			})
 		}
@@ -148,7 +137,3 @@ func StartChatRoom() (context.Context, context.CancelFunc, *ChatRoom) {
 /**
  * Private Functions
  */
-func randomColor() lipgloss.Color {
-	hsl := color.HSL{H: rand.Float64(), S: 0.7, L: 0.7}
-	return lipgloss.Color("#" + hsl.ToHTML())
-}

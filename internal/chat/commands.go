@@ -9,6 +9,45 @@ import (
 	"github.com/justinian/dice"
 )
 
+const (
+	Bel = "\007"
+)
+
+func CommandsOutput(msg string) string {
+	msg = DiceCommands(msg)
+	return msg
+}
+
+func TextCommands(msg string) string {
+	// change color of inline text
+	msg = ColorText(msg, "/", "/")
+	//adding pseudo markdown
+	//italics
+	msg = TextStyles(msg, "*", "*", "italics")
+	//bold
+	msg = TextStyles(msg, "+", "+", "bold")
+	//whisper
+	msg = TextStyles(msg, "{", "}", "whisper")
+	//underline
+	msg = TextStyles(msg, "_", "_", "underline")
+
+	return msg
+}
+
+func DiceCommands(msg string) string {
+	//shadowrun dice command
+	if strings.Contains(msg, "sr[") {
+		msg = shadowroll(msg)
+	}
+	//standard dice command
+	if strings.Contains(msg, "roll[") {
+		msg = standardroll(msg)
+	}
+
+	return msg
+}
+
+// Meat of the Commands
 func standardroll(ro string) string {
 	roll := GetStringInBetween(ro, "roll[", "]")
 	name := strings.TrimRight(ro, ":")
@@ -27,7 +66,7 @@ func standardroll(ro string) string {
 			sNums[i] = strconv.Itoa(x)
 		}
 		list := strings.Join(sNums, ", ")
-		total := roll_style.Render(strconv.Itoa(r.Total))
+		total := strconv.Itoa(r.Total)
 		me = name + "\n total = " + total + "\n dice_rolled = " + list
 		if r.Dropped != nil {
 			sort.Ints(r.Dropped)
@@ -60,7 +99,7 @@ func shadowroll(ro string) string {
 		for i, x := range r.Rolls {
 			sNums[i] = strconv.Itoa(x)
 		}
-		hits := roll_style.Render(strconv.Itoa(r.Successes))
+		hits := strconv.Itoa(r.Successes)
 		list := strings.Join(sNums, ", ")
 		me = name + " \n total_hits = " + hits + "\n total_results = " + list
 		count := strings.Count(list, "1")
@@ -86,13 +125,19 @@ func GetStringInBetween(str string, start string, end string) (result string) {
 // color text!
 func ColorText(msg string, start string, end string) string {
 	var edited string
-	boring := GetStringInBetween(msg, start, end)
-	colorpick := GetStringInBetween(msg, "/", "=")
-	txt := GetStringInBetween(msg, "=", "/")
-	prettify := lipgloss.NewStyle().Foreground(lipgloss.Color(colorpick))
-	pretty_words := prettify.Render(txt)
-	edited = start + boring + end
-	msg = strings.Replace(msg, edited, pretty_words, -1)
+	for {
+		boring := GetStringInBetween(msg, start, end)
+		if boring != "" {
+			colorpick := GetStringInBetween(msg, "/", "=")
+			txt := GetStringInBetween(msg, "=", "/")
+			prettify := lipgloss.NewStyle().Foreground(lipgloss.Color(colorpick))
+			pretty_words := prettify.Render(txt)
+			edited = start + boring + end
+			msg = strings.Replace(msg, edited, pretty_words, -1)
+		} else {
+			break
+		}
+	}
 	return msg
 }
 

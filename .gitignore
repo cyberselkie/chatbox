@@ -1,2 +1,5 @@
 .ssh
 *_ed25519*
+/internal/chat/theme-test.txt
+.DS_store
+.vscode/

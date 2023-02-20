@@ -3,9 +3,8 @@ package chat
 import (
 	"sync"
 
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type RecvMsg struct {
@@ -20,19 +19,22 @@ type ChatRoom struct {
 }
 
 type Client struct {
-	input       textinput.Model
-	recv        chan Msg
-	send        chan<- string
-	username    string
-	users       []string
-	polls       int
-	chat        string
-	width       int
-	height      int
-	viewport    viewport.Model
-	err         error
-	senderStyle lipgloss.Style
-	messages    []string
+	input    textarea.Model
+	recv     chan Msg
+	send     chan<- string
+	username string
+	users    []string
+	polls    int
+	chat     string
+	width    int
+	height   int
+	viewport viewport.Model
+	err      error
+	theme    string
+	Choice   int
+	ready    bool
+	//Chosen   bool
+	//Loaded   bool
 }
 
 type Msg interface {
